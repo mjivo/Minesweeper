@@ -4,7 +4,7 @@
     internal class MarkNotABombException : Exception
     {
         public MarkNotABombException()
-            : this("You can mark as bomb only unexplored cells.")
+            : this("You can mark as bomb only unexplored and not marked cells.")
         {
         }
         public MarkNotABombException(string msg)

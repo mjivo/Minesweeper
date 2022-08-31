@@ -1,7 +1,6 @@
 ﻿namespace Minesweeper.Build
 {
     using System;
-    using System.Linq;
     using System.Text;
     using System.Collections.Generic;
 
@@ -11,32 +10,46 @@
 
     internal class Area : IArea
     {
-        private int _cells;
-        private HashSet<ICoordinates> _bombsCoordinates;
         private string _topCoordinates;
+
+        private int _cells;
+        private int _exploredCells;
+
+        private HashSet<ICoordinates> _bombsCoordinates;
+
+        private const char GameAreaSymbol = '\u25A0';
+
         private Area()
         {
-            //this._bombsCoordinates.Add(new Coordinates(0, 1));
         }
-        public Area(ICoordinates coordinates)
+
+        public Area(ICoordinates size)
             : this()
         {
-            this.Size = coordinates;
+            this.Size = size;
             this.GameArea = new char[this.Size.Y, this.Size.X];
             this._cells = this.Size.X * this.Size.Y;
 
             this._topCoordinates = this.GenerateTopCoordinates();
-
             this._bombsCoordinates = new HashSet<ICoordinates>();
         }
-
         public ICoordinates Size { get; private set; }
 
         public char[,] GameArea { get; private set; }
 
         public int Cells => this._cells;
 
+        public int ExploredCells
+        {
+            get => this._exploredCells;
+        }
+
         public IReadOnlyCollection<ICoordinates> BombsCoordinates { get => this._bombsCoordinates; }
+
+        public char GetGameAreaSymbol()
+        {
+            return GameAreaSymbol;
+        }
 
         public void AddBombCordinates(ICoordinates coordinates)
         {
@@ -45,30 +58,27 @@
 
         public void RemoveBombCordinates(ICoordinates coordinates)
         {
-            throw new System.NotImplementedException();
+            this._bombsCoordinates.Remove(coordinates);
         }
 
         public void ExploreCell(ICoordinates coordinates)
         {
-            //check if cell is a bomb
+            //lose check
             if (this._bombsCoordinates.Contains(coordinates))
             {
+                this.RevealBombs();
                 throw new GameEndedException(GameEndedMessages.CellIsBomb);
             }
 
-            int numOfSurroundingBombs = NumOfSurroundingBombs(coordinates);
-            if (numOfSurroundingBombs == 8)
-            {
-                if (this._bombsCoordinates.Contains(coordinates))
-                {
-                    this._bombsCoordinates.Remove(coordinates);
-                }
-            }
-            if (numOfSurroundingBombs == 0)
-            {
+            //explore
+            this.Explorer(coordinates);
 
+            //win check
+            if (this.Cells - this._exploredCells == this.BombsCoordinates.Count)
+            {
+                this.RevealBombs();
+                throw new GameWonException();
             }
-            this.SetCellValue(coordinates, $"{numOfSurroundingBombs}"[0]);
         }
 
         public void SetCellValue(ICoordinates coordinates, char symbol)
@@ -87,6 +97,11 @@
             }
         }
 
+        public void SetGameArea()
+        {
+            this.SetGameArea(GameAreaSymbol);
+        }
+
         public override string ToString()
         {
             StringBuilder result = new StringBuilder();
@@ -103,19 +118,29 @@
             return result.ToString().TrimEnd();
         }
 
-        private int NumOfSurroundingBombs(ICoordinates coordinates)
+        private void RevealBombs()
+        {
+            foreach (ICoordinates coordinates in this._bombsCoordinates)
+            {
+                this.GameArea[coordinates.Y, coordinates.X] = 'B';
+            }
+        }
+
+        private void Explorer(ICoordinates coordinates)
         {
             int numOfsurroundingBombs = 0;
 
+            HashSet<ICoordinates> cellsToCheck = new HashSet<ICoordinates>();
+
             bool isCornered = false;
             bool isEaged = false;
-            if (coordinates.X == 0 || coordinates.Y == 0)
+            if (coordinates.X == 0 || coordinates.Y == 0 || coordinates.X == this.Size.X - 1 || coordinates.Y == this.Size.Y - 1)
             {
                 isEaged = true;
                 if (coordinates.X == 0 && coordinates.Y == 0
-                    || coordinates.X == 0 && coordinates.Y == this.Size.Y
-                    || coordinates.X == this.Size.X && coordinates.Y == 0
-                    || coordinates.X == this.Size.X && coordinates.Y == this.Size.Y)
+                    || coordinates.X == 0 && coordinates.Y == this.Size.Y - 1
+                    || coordinates.X == this.Size.X - 1 && coordinates.Y == 0
+                    || coordinates.X == this.Size.X - 1 && coordinates.Y == this.Size.Y - 1)
                 {
                     isCornered = true;
                 }
@@ -124,34 +149,180 @@
             {
                 if (coordinates.X == 0)
                 {
-                    if (coordinates.Y == 0)//right up corrner
+                    if (coordinates.Y == 0)//left up corrner
                     {
-                        ICoordinates leftCell = new Coordinates(coordinates.X + 1, coordinates.Y);
+                        ICoordinates rightCell = new Coordinates(coordinates.X + 1, coordinates.Y);
                         ICoordinates downLeftCell = new Coordinates(coordinates.X + 1, coordinates.Y + 1);
                         ICoordinates downCell = new Coordinates(coordinates.X, coordinates.Y + 1);
 
-                        HashSet<ICoordinates> cellsToCheck = new HashSet<ICoordinates>()
+                        cellsToCheck = new HashSet<ICoordinates>()
                         {
-                            leftCell,
+                            rightCell,
                             downLeftCell,
                             downCell,
                         };
-                        foreach (ICoordinates cords in cellsToCheck)
+                    }
+                    else if (coordinates.Y == this.Size.Y - 1)//left down corrner
+                    {
+                        ICoordinates rightCell = new Coordinates(coordinates.X + 1, coordinates.Y);
+                        ICoordinates rightUpCell = new Coordinates(coordinates.X + 1, coordinates.Y - 1);
+                        ICoordinates upCell = new Coordinates(coordinates.X, coordinates.Y - 1);
+
+                        cellsToCheck = new HashSet<ICoordinates>()
                         {
-                            if (this._bombsCoordinates.Contains(cords))
-                            {
-                                numOfsurroundingBombs++;
-                            }
-                        }
+                            rightCell,
+                            rightUpCell,
+                            upCell,
+                        };
+                    }
+                }
+                else if (coordinates.X == this.Size.X - 1)
+                {
+                    if (coordinates.Y == 0)
+                    {
+                        ICoordinates leftCell = new Coordinates(coordinates.X - 1, coordinates.Y);
+                        ICoordinates leftDownCell = new Coordinates(coordinates.X - 1, coordinates.Y + 1);
+                        ICoordinates downCell = new Coordinates(coordinates.X, coordinates.Y + 1);
+
+                        cellsToCheck = new HashSet<ICoordinates>()
+                        {
+                            leftCell,
+                            leftDownCell,
+                            downCell,
+                        };
+                    }
+                    else if (coordinates.Y == this.Size.Y - 1)
+                    {
+                        ICoordinates leftCell = new Coordinates(coordinates.X - 1, coordinates.Y);
+                        ICoordinates leftUpCell = new Coordinates(coordinates.X - 1, coordinates.Y - 1);
+                        ICoordinates upCell = new Coordinates(coordinates.X, coordinates.Y - 1);
+
+                        cellsToCheck = new HashSet<ICoordinates>()
+                       {
+                           leftCell,
+                           leftUpCell,
+                           upCell
+                       };
+
                     }
                 }
             }
             else if (isEaged)
             {
+                if (coordinates.Y == 0)
+                {
+                    ICoordinates leftCell = new Coordinates(coordinates.X - 1, coordinates.Y);
+                    ICoordinates rightCell = new Coordinates(coordinates.X + 1, coordinates.Y);
+                    ICoordinates downLeftCell = new Coordinates(coordinates.X - 1, coordinates.Y + 1);
+                    ICoordinates downCell = new Coordinates(coordinates.X, coordinates.Y + 1);
+                    ICoordinates downRightCell = new Coordinates(coordinates.X + 1, coordinates.Y + 1);
 
+                    cellsToCheck = new HashSet<ICoordinates>()
+                    {
+                        leftCell,
+                        rightCell,
+                        downRightCell,
+                        downCell,
+                        downLeftCell,
+                    };
+                }
+                else if (coordinates.Y == this.Size.Y - 1)
+                {
+                    ICoordinates leftCell = new Coordinates(coordinates.X - 1, coordinates.Y);
+                    ICoordinates rightCell = new Coordinates(coordinates.X + 1, coordinates.Y);
+                    ICoordinates upLeftCell = new Coordinates(coordinates.X - 1, coordinates.Y - 1);
+                    ICoordinates upCell = new Coordinates(coordinates.X, coordinates.Y - 1);
+                    ICoordinates upRightCell = new Coordinates(coordinates.X + 1, coordinates.Y - 1);
+
+                    cellsToCheck = new HashSet<ICoordinates>()
+                    {
+                        leftCell,
+                        rightCell,
+                        upLeftCell,
+                        upCell,
+                        upRightCell,
+                    };
+                }
+                else if (coordinates.X == 0)
+                {
+                    ICoordinates upCell = new Coordinates(coordinates.X, coordinates.Y - 1);
+                    ICoordinates downCell = new Coordinates(coordinates.X, coordinates.Y + 1);
+                    ICoordinates rightUpCell = new Coordinates(coordinates.X + 1, coordinates.Y - 1);
+                    ICoordinates rightCell = new Coordinates(coordinates.X + 1, coordinates.Y);
+                    ICoordinates rightDownCell = new Coordinates(coordinates.X + 1, coordinates.Y + 1);
+
+                    cellsToCheck = new HashSet<ICoordinates>()
+                    {
+                        upCell,
+                        downCell,
+                        rightUpCell,
+                        rightCell,
+                        rightDownCell,
+                    };
+                }
+                else if (coordinates.X == this.Size.X - 1)
+                {
+                    ICoordinates upCell = new Coordinates(coordinates.X, coordinates.Y - 1);
+                    ICoordinates downCell = new Coordinates(coordinates.X, coordinates.Y + 1);
+                    ICoordinates leftUpCell = new Coordinates(coordinates.X - 1, coordinates.Y - 1);
+                    ICoordinates leftCell = new Coordinates(coordinates.X - 1, coordinates.Y);
+                    ICoordinates leftDownCell = new Coordinates(coordinates.X - 1, coordinates.Y + 1);
+
+                    cellsToCheck = new HashSet<ICoordinates>()
+                    {
+                        upCell,
+                        downCell,
+                        leftUpCell,
+                        leftCell,
+                        leftDownCell,
+                    };
+                }
+            }
+            else
+            {
+                ICoordinates upLeftCell = new Coordinates(coordinates.X - 1, coordinates.Y - 1);
+                ICoordinates upCell = new Coordinates(coordinates.X, coordinates.Y - 1);
+                ICoordinates upRightCell = new Coordinates(coordinates.X + 1, coordinates.Y - 1);
+                ICoordinates leftCell = new Coordinates(coordinates.X - 1, coordinates.Y);
+                ICoordinates rightCell = new Coordinates(coordinates.X + 1, coordinates.Y);
+                ICoordinates downLeftCell = new Coordinates(coordinates.X - 1, coordinates.Y + 1);
+                ICoordinates downCell = new Coordinates(coordinates.X, coordinates.Y + 1);
+                ICoordinates downRightCell = new Coordinates(coordinates.X + 1, coordinates.Y + 1);
+
+                cellsToCheck = new HashSet<ICoordinates>()
+                {
+                        upLeftCell,
+                        upCell,
+                        upRightCell,
+                        leftCell,
+                        rightCell,
+                        downLeftCell,
+                        downCell,
+                        downRightCell,
+                };
             }
 
-            return numOfsurroundingBombs;
+            
+            this._exploredCells++;
+            foreach (ICoordinates cords in cellsToCheck)
+            {
+                if (this._bombsCoordinates.Contains(cords))
+                {
+                    numOfsurroundingBombs++;
+                }
+            }
+
+            this.SetCellValue(coordinates, $"{numOfsurroundingBombs}"[0]);
+            if (numOfsurroundingBombs == 0)
+            {
+                foreach (ICoordinates cords in cellsToCheck)
+                {
+                    if (this.GameArea[cords.Y, cords.X] == GameAreaSymbol)
+                    {
+                        this.Explorer(cords);
+                    }
+                }
+            }
         }
 
         private string GenerateTopCoordinates()

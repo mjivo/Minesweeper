@@ -4,19 +4,15 @@
     {
         public IArea Area { get; }
 
-        public ICoordinates Sizes { get; }
-
         public string Difficulty { get; }
 
         public int Bombs { get; }
-
-        public int FoundedBombs { get; }
 
         public int MarkedBombs { get; }
 
         public void SetGameArea();
 
-        public void CalucateBombsByDifficulty(string difficulty);
+        public void CalucateBombsByDifficulty();
 
         public void PlantBombs();
 
@@ -28,6 +24,10 @@
 
         public void ExploreCell(ICoordinates coordinates);
 
-        public string GetGameArea();
+        //public string GetGameArea();
+
+        //public string GetGameAreaRevealedBombs();
+
+        public string GetStats();
     }
 }

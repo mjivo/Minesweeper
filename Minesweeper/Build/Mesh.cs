@@ -1,37 +1,37 @@
 ﻿namespace Minesweeper.Build
 {
     using System;
-    using System.Collections.Generic;
     using System.Text;
-    using Contracts;
+    using System.Collections.Generic;
 
+    using Contracts;
     using Data.Enums;
     using Data.Uttilites.Exception_messages;
     using Minesweeper.Data.Uttilites.Exceptions;
 
     internal class Mesh : IMesh
     {
-        private int _percentageOfBombs;
+        private bool _isAlerted;
+
         private string _difficulty;
-        private int _foundBombs;
+        private int _percentageOfBombs;
         private int _bombs;
 
-
-        private bool _isAlerted;
+        private const char FlagedBombSymbol = '\u2690';
 
         private List<ICoordinates> MarkedBombsCoordinates;
 
-        private const char GameAreaSymbol = '#';
-
-        public Mesh(ICoordinates sizes, IArea area)
+        public Mesh(IArea area, string difficulty)
         {
             this.Area = area;
-            this.Sizes = sizes;
+            this.Difficulty = difficulty;
 
             this.MarkedBombsCoordinates = new List<ICoordinates>();
-        }
 
-        public ICoordinates Sizes { get; private set; }
+            this.SetGameArea();
+            this.CalucateBombsByDifficulty();
+            this.PlantBombs();
+        }
 
         public IArea Area { get; private set; }
 
@@ -56,17 +56,6 @@
             }
         }
 
-        public int FoundedBombs
-        {
-            get => this._foundBombs;
-            private set
-            {
-                if (value < 0)
-                    throw new ArgumentOutOfRangeException(string.Format(MeshClassExceptions.BombsCannotBeNegative, nameof(this.FoundedBombs), value));
-                _foundBombs = value;
-            }
-        }
-
         public int MarkedBombs
         {
             get => this.MarkedBombsCoordinates.Count;
@@ -74,13 +63,12 @@
 
         public void SetGameArea()
         {
-            this.Area.SetGameArea(GameAreaSymbol);
+            this.Area.SetGameArea();
         }
 
-        public void CalucateBombsByDifficulty(string difficulty)
+        public void CalucateBombsByDifficulty()
         {
-            this.Difficulty = difficulty;
-            this.Bombs = ((int)Math.Round(this.Area.Cells * this._percentageOfBombs / 100.00, 0));
+            this.Bombs = ((int)Math.Ceiling(this.Area.Cells * this._percentageOfBombs / 100.00));
         }
 
         public void PlantBombs()
@@ -89,8 +77,8 @@
 
             for (int b = 0; b < Bombs; b++)
             {
-                int bombX = random.Next(this.Sizes.X);
-                int bombY = random.Next(this.Sizes.Y);
+                int bombX = random.Next(this.Area.Size.X);
+                int bombY = random.Next(this.Area.Size.Y);
                 ICoordinates coordinates = new Coordinates(bombX, bombY);
                 this.Area.AddBombCordinates(coordinates);
             }
@@ -103,9 +91,9 @@
 
         public void MarkCellAsABomb(ICoordinates coordinates)
         {
-            if (this.Area.GameArea[coordinates.Y, coordinates.X] == '#')
+            if (this.Area.GameArea[coordinates.Y, coordinates.X] == this.Area.GetGameAreaSymbol())
             {
-                this.Area.SetCellValue(coordinates, 'M');
+                this.Area.SetCellValue(coordinates, FlagedBombSymbol);
                 this.MarkedBombsCoordinates.Add(coordinates);
             }
             else
@@ -116,9 +104,9 @@
 
         public void UnmarkCellAsABomb(ICoordinates coordinates)
         {
-            if (this.Area.GameArea[coordinates.Y, coordinates.X] == 'M')
+            if (this.Area.GameArea[coordinates.Y, coordinates.X] == FlagedBombSymbol)//check if cell is flaged before unflaging
             {
-                this.Area.SetCellValue(coordinates, GameAreaSymbol);
+                this.Area.SetCellValue(coordinates, this.Area.GetGameAreaSymbol());
                 this.MarkedBombsCoordinates.Remove(coordinates);
             }
             else
@@ -129,7 +117,7 @@
 
         public void ExploreCell(ICoordinates coordinates)
         {
-            if (this.Area.GameArea[coordinates.Y, coordinates.X] == 'M' && !this._isAlerted)
+            if (this.Area.GameArea[coordinates.Y, coordinates.X] == FlagedBombSymbol && !this._isAlerted)// throw a warning
             {
                 this._isAlerted = true;
                 throw new ExploreMarkedCellWarrningException();
@@ -141,11 +129,18 @@
             }
         }
 
-        public string GetGameArea()
+        public override string ToString()
         {
             StringBuilder result = new StringBuilder();
-            result.AppendLine($"Bombs left: {this.Bombs - this.MarkedBombs - this.FoundedBombs}");
+            //result.AppendLine($"Bombs left: {this.Bombs - this.MarkedBombs}");
             result.AppendLine(this.Area.ToString());
+            return result.ToString();
+        }
+
+        public string GetStats()
+        {
+            StringBuilder result = new StringBuilder();
+
             return result.ToString();
         }
 
@@ -177,7 +172,5 @@
                     throw new InvalidOperationException(String.Format(MeshClassExceptions.InvalidMeshDifficulty, value));
             }
         }
-
-
     }
 }

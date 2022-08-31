@@ -12,15 +12,19 @@ namespace Minesweeper.Build.Contracts
 
         public IReadOnlyCollection<ICoordinates> BombsCoordinates { get; }
 
+        public char GetGameAreaSymbol();
+
+        public void SetGameArea();
+
         public void SetGameArea(char symbol);
+
+        public void SetCellValue(ICoordinates coordinates, char symbol);
 
         public void AddBombCordinates(ICoordinates coordinates);
 
         public void RemoveBombCordinates(ICoordinates coordinates);
 
         public void ExploreCell(ICoordinates coordinates);
-
-        public void SetCellValue(ICoordinates coordinates, char symbol);
 
     }
 }

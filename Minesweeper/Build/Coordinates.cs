@@ -8,6 +8,7 @@
     {
         private int _x;
         private int _y;
+
         public Coordinates(int x, int y)
         {
             this.X = x;
@@ -23,6 +24,7 @@
                 this._x = value;
             }
         }
+
         public int Y
         {
             get => this._y;
@@ -64,7 +66,8 @@
 
         public override int GetHashCode()
         {
-            return this.X.GetHashCode() * 17 + 11 + this.Y.GetHashCode() * 23 + 13;
+            return this.X.GetHashCode() * 13 + 17 + this.Y.GetHashCode() * 17 + 13;
+
         }
 
         public override bool Equals(object obj)
@@ -74,7 +77,7 @@
 
         public override string ToString()
         {
-            return $"'X' - {X}{Environment.NewLine}'Y' - {Y}";
+            return $"[{this.X},{this.Y}]";
         }
     }
 }

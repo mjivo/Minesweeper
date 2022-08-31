@@ -2,7 +2,7 @@
 {
     internal enum Difficulties
     {
-        easy = 15,
+        easy = 14,
         medium = 28,
         hard = 32,
         verryHard = 35,

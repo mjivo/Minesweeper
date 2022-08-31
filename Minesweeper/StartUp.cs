@@ -1,5 +1,7 @@
 ﻿namespace Minesweeper
 {
+    using System;
+
     using Core;
     using Core.Contracts;
     using Build;
@@ -11,20 +13,28 @@
     {
         static void Main()
         {
-            //const string difficulty = "easy";
+            const string difficulty = "easy";
             const int x = 9;
             const int y = 9;
 
-            ICoordinates coordinates = new Coordinates(x, y);
-            IArea area = new Area(coordinates);
+            while (true)
+            {
+                ICoordinates size = new Coordinates(x, y);
+                IArea area = new Area(size);
 
-            IMesh mesh = new Mesh(coordinates, area);
+                IMesh mesh = new Mesh(area, difficulty);
 
 
-            IWriter writer = new ConsoleWrter();
-            IReader reader = new ConsoleReader();
-            IEngine engine = new Engine(mesh, writer, reader);
-            engine.Start();
+                IConsoleWriter consoleWriter = new ConsoleWrter();
+                IReader reader = new ConsoleReader();
+                IEngine engine = new Engine(mesh, consoleWriter, reader);
+
+                if (engine.Start())
+                {
+                    continue;
+                }
+                Environment.Exit(0);
+            }
         }
     }
 }

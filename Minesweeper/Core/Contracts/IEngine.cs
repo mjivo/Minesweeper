@@ -2,6 +2,6 @@
 {
     internal interface IEngine
     {
-        public void Start();
+        public bool Start();
     }
 }
