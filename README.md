@@ -7,4 +7,4 @@ Minesweeper has its origins in the earliest mainframe games of the 1960s and 197
 
 # Source code
 
-You can find all the code in the folder Minesweeper.
+You can find all the code in the folder [Minesweeper](https://github.com/mjivo/Minesweeper/tree/main/Minesweeper).
